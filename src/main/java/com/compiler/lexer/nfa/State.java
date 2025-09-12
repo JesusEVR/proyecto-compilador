@@ -2,11 +2,12 @@ package com.compiler.lexer.nfa;
 
 import java.util.List;
 import java.util.ArrayList;
+import com.compiler.lexer.tokenizer.TokenType;
 
 /**
  * Represents a state in a Non-deterministic Finite Automaton (NFA).
  * Each state has a unique identifier, a list of transitions to other states,
- * and a flag indicating whether it is a final (accepting) state.
+ * a flag indicating whether it is a final (accepting) state, and optional token information.
  *
  * <p>
  * Fields:
@@ -14,6 +15,8 @@ import java.util.ArrayList;
  *   <li>{@code id} - Unique identifier for the state.</li>
  *   <li>{@code transitions} - List of transitions from this state to others.</li>
  *   <li>{@code isFinal} - Indicates if this state is an accepting state.</li>
+ *   <li>{@code tokenType} - The type of token this state recognizes (if final).</li>
+ *   <li>{@code tokenPriority} - Priority for conflict resolution.</li>
  * </ul>
  *
  *
@@ -39,6 +42,16 @@ public class State {
     public boolean isFinal;
 
     /**
+     * The token type this state recognizes (null if not a final state or doesn't recognize a token).
+     */
+    private TokenType tokenType;
+    
+    /**
+     * Priority of the token type (lower values = higher priority). Used for conflict resolution.
+     */
+    private int tokenPriority;
+
+    /**
      * Constructs a new state with a unique identifier and no transitions.
      * The state is not final by default.
      */
@@ -46,6 +59,8 @@ public class State {
         this.id = nextId++;
         this.transitions = new ArrayList<>();
         this.isFinal = false;
+        this.tokenType = null;
+        this.tokenPriority = Integer.MAX_VALUE;
     }
 
     /**
@@ -58,6 +73,35 @@ public class State {
         } else {
             return false;
         }
+    }
+
+    /**
+     * Sets the token type this state recognizes.
+     * @param tokenType The token type.
+     * @param priority The priority of this token type (lower values = higher priority).
+     */
+    public void setTokenType(TokenType tokenType, int priority) {
+        // Only set if this has higher priority (lower priority value) or if no token type is set
+        if (this.tokenType == null || priority < this.tokenPriority) {
+            this.tokenType = tokenType;
+            this.tokenPriority = priority;
+        }
+    }
+
+    /**
+     * Gets the token type this state recognizes.
+     * @return The token type, or null if this state doesn't recognize a token.
+     */
+    public TokenType getTokenType() {
+        return tokenType;
+    }
+
+    /**
+     * Gets the priority of the token type.
+     * @return The token priority.
+     */
+    public int getTokenPriority() {
+        return tokenPriority;
     }
 
     /**

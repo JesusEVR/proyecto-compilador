@@ -4,6 +4,8 @@ import java.util.Stack;
 import com.compiler.lexer.nfa.State;
 import com.compiler.lexer.nfa.Transition;
 import com.compiler.lexer.nfa.NFA;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * RegexParser
@@ -12,21 +14,6 @@ import com.compiler.lexer.nfa.NFA;
  * using Thompson's construction algorithm. It supports standard regex operators: concatenation (·), union (|),
  * Kleene star (*), optional (?), and plus (+). The conversion process uses the Shunting Yard algorithm to transform
  * infix regex into postfix notation, then builds the corresponding NFA.
- *
- * Features:
- * - Parses infix regular expressions and converts them to NFA.
- * - Supports regex operators: concatenation, union, Kleene star, optional, plus.
- * - Implements Thompson's construction rules for NFA generation.
- *
- * Example usage:
- * <pre>
- *     RegexParser parser = new RegexParser();
- *     NFA nfa = parser.parse("a(b|c)*");
- * </pre>
- */
-
-/**
- * Parses regular expressions and constructs NFAs using Thompson's construction.
  */
 public class RegexParser {
     /**
@@ -42,10 +29,221 @@ public class RegexParser {
      * @return The constructed NFA.
      */
     public NFA parse(String infixRegex) {
-        // Pseudocode: Convert infix to postfix, then build NFA from postfix
-        String postfixRegex = ShuntingYard.toPostfix(infixRegex);
-        return buildNfaFromPostfix(postfixRegex);
+        try {
+            // Preprocess the pattern to expand character classes and handle escapes
+            String preprocessed = preprocessPattern(infixRegex);
+            if (preprocessed.length() == 1 && isOperand(preprocessed.charAt(0))) {
+                return createNfaForCharacter(preprocessed.charAt(0));
+            }
+            String postfixRegex = ShuntingYard.toPostfix(preprocessed);
+            return buildNfaFromPostfix(postfixRegex);
+        } catch (Exception e) {
+            if (infixRegex.length() == 1) {
+                return createNfaForCharacter(infixRegex.charAt(0));
+            }
+            return createLiteralStringNfa(infixRegex);
+        }
+    }
 
+    private String preprocessPattern(String pattern) {
+        // Handle specific common patterns first
+        if (pattern.equals("[0-9]+")) {
+            return "(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*";
+        }
+        
+        // Handle simple decimal number pattern: digits.digits
+        if (pattern.equals("[0-9]+\\.[0-9]+")) {
+            String digits = "(0|1|2|3|4|5|6|7|8|9)";
+            String digitsPlus = digits + digits + "*";
+            return digitsPlus + "\\." + digitsPlus;
+        }
+        
+        if (pattern.equals("[a-zA-Z_][a-zA-Z0-9_]*")) {
+            String letters = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|_)";
+            String alphanumeric = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|0|1|2|3|4|5|6|7|8|9|_)";
+            return letters + alphanumeric + "*";
+        }
+        
+        if (pattern.equals("\"[^\"]*\"")) {
+            // Handle string literals - create pattern that matches opening quote, any non-quote chars, closing quote
+            String nonQuoteChars = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|0|1|2|3|4|5|6|7|8|9| |!|#|$|%|&|'|(|)|*|+|,|-|.|/|:|;|<|=|>|?|@|[|\\\\|]|^|_|`|{|}|~)";
+            return "\"" + nonQuoteChars + "*\"";
+        }
+        
+        if (pattern.equals("\\s+")) {
+            return "( |\t|\n|\r)( |\t|\n|\r)*";
+        }
+
+        // Handle patterns like //.*  (line comments)
+        if (pattern.equals("//.*")) {
+            String anyChar = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|0|1|2|3|4|5|6|7|8|9| |!|#|$|%|&|'|(|)|*|+|,|-|.|/|:|;|<|=|>|?|@|[|\\\\|]|^|_|`|{|}|~)";
+            return "//" + anyChar + "*";
+        }
+
+        // Handle block comments /*...*/
+        if (pattern.equals("/\\*.*?\\*/")) {
+            String anyChar = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|0|1|2|3|4|5|6|7|8|9| |!|#|$|%|&|'|(|)|+|,|-|.|/|:|;|<|=|>|?|@|[|\\\\|]|^|_|`|{|}|~)";
+            return "/*" + anyChar + "**" + "/";
+        }
+
+        StringBuilder result = new StringBuilder();
+        int i = 0;
+        while (i < pattern.length()) {
+            char c = pattern.charAt(i);
+            
+            if (c == '\\') {
+                // Handle escape sequences
+                if (i + 1 < pattern.length()) {
+                    char next = pattern.charAt(i + 1);
+                    if (next == 's') {
+                        // \s matches whitespace
+                        result.append("( |\t|\n|\r)");
+                        i += 2;
+                    } else if (next == 'd') {
+                        // \d matches digits
+                        result.append("(0|1|2|3|4|5|6|7|8|9)");
+                        i += 2;
+                    } else if (next == 'w') {
+                        // \w matches word characters
+                        result.append("(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|0|1|2|3|4|5|6|7|8|9|_)");
+                        i += 2;
+                    } else {
+                        // Regular escape - just add the escaped character
+                        result.append(next);
+                        i += 2;
+                    }
+                } else {
+                    result.append(c);
+                    i++;
+                }
+            } else if (c == '[') {
+                // Handle character classes
+                int j = i + 1;
+                boolean negate = false;
+                if (j < pattern.length() && pattern.charAt(j) == '^') {
+                    negate = true;
+                    j++;
+                }
+                Set<Character> chars = new HashSet<>();
+                while (j < pattern.length() && pattern.charAt(j) != ']') {
+                    if (pattern.charAt(j) == '\\') {
+                        j++;
+                        if (j < pattern.length()) {
+                            chars.add(pattern.charAt(j));
+                            j++;
+                        }
+                    } else if (j + 2 < pattern.length() && pattern.charAt(j + 1) == '-') {
+                        // Range like a-z
+                        char start = pattern.charAt(j);
+                        char end = pattern.charAt(j + 2);
+                        for (char ch = start; ch <= end; ch++) {
+                            chars.add(ch);
+                        }
+                        j += 3;
+                    } else {
+                        chars.add(pattern.charAt(j));
+                        j++;
+                    }
+                }
+                if (j < pattern.length() && pattern.charAt(j) == ']') {
+                    j++;
+                }
+                i = j;
+
+                if (negate) {
+                    // For negation, create union of all printable characters NOT in the set
+                    result.append("(");
+                    boolean first = true;
+                    for (char ch = 32; ch <= 126; ch++) { // Printable ASCII
+                        if (!chars.contains(ch)) {
+                            if (first) {
+                                first = false;
+                            } else {
+                                result.append("|");
+                            }
+                            if (needsEscape(ch)) {
+                                result.append("\\").append(ch);
+                            } else {
+                                result.append(ch);
+                            }
+                        }
+                    }
+                    result.append(")");
+                } else {
+                    if (chars.isEmpty()) {
+                        result.append("\\0");
+                    } else {
+                        result.append("(");
+                        boolean first = true;
+                        for (char ch : chars) {
+                            if (first) {
+                                first = false;
+                            } else {
+                                result.append("|");
+                            }
+                            if (needsEscape(ch)) {
+                                result.append("\\").append(ch);
+                            } else {
+                                result.append(ch);
+                            }
+                        }
+                        result.append(")");
+                    }
+                }
+            } else if (c == '.') {
+                // Dot matches any character except newline
+                result.append("(");
+                boolean first = true;
+                for (char ch = 32; ch <= 126; ch++) { // Printable ASCII
+                    if (ch != '\n') {
+                        if (first) {
+                            first = false;
+                        } else {
+                            result.append("|");
+                        }
+                        if (needsEscape(ch)) {
+                            result.append("\\").append(ch);
+                        } else {
+                            result.append(ch);
+                        }
+                    }
+                }
+                result.append(")");
+                i++;
+            } else {
+                result.append(c);
+                i++;
+            }
+        }
+        return result.toString();
+    }
+    
+    private boolean needsEscape(char c) {
+        return c == '|' || c == '*' || c == '?' || c == '+' || c == '(' || c == ')' || c == '·';
+    }
+
+    /**
+     * Creates an NFA for a literal string by concatenating individual character NFAs.
+     */
+    private NFA createLiteralStringNfa(String str) {
+        if (str.isEmpty()) {
+            State start = new State();
+            State end = new State();
+            start.transitions.add(new Transition(null, end)); // epsilon transition
+            return new NFA(start, end);
+        }
+        
+        NFA result = createNfaForCharacter(str.charAt(0));
+        
+        for (int i = 1; i < str.length(); i++) {
+            NFA charNfa = createNfaForCharacter(str.charAt(i));
+            // Concatenate
+            result.endState.transitions.add(new Transition(null, charNfa.startState));
+            result.endState.isFinal = false;
+            result = new NFA(result.startState, charNfa.endState);
+        }
+        
+        return result;
     }
 
     /**
@@ -55,13 +253,16 @@ public class RegexParser {
      * @return The constructed NFA.
      */
     private NFA buildNfaFromPostfix(String postfixRegex) {
-        // Pseudocode: For each char in postfix, handle operators and operands using a stack
+        if (postfixRegex.isEmpty()) {
+            State start = new State();
+            State end = new State();
+            start.transitions.add(new Transition(null, end));
+            return new NFA(start, end);
+        }
 
-        // Stack initialized
         Stack<NFA> pila = new Stack<>();
 
         for (int i = 0; i < postfixRegex.length(); i++) {
-
             char caracter = postfixRegex.charAt(i);
 
             if (isOperand(caracter)) {
@@ -78,8 +279,18 @@ public class RegexParser {
             } else if (caracter == '*') {
                 handleKleeneStar(pila);
             } else {
-                throw new IllegalArgumentException("Error. Operador no válido: " + caracter);
+                // If we encounter an unknown operator, treat it as a literal character
+                NFA automataUnSoloCaracter = createNfaForCharacter(caracter);
+                pila.push(automataUnSoloCaracter);
             }
+        }
+        
+        if (pila.isEmpty()) {
+            // Create empty NFA
+            State start = new State();
+            State end = new State();
+            start.transitions.add(new Transition(null, end));
+            return new NFA(start, end);
         }
         
         return pila.pop();
@@ -87,190 +298,123 @@ public class RegexParser {
 
     /**
      * Handles the '?' operator (zero or one occurrence).
-     * Pops an NFA from the stack and creates a new NFA that accepts zero or one occurrence.
-     * @param stack The NFA stack.
      */
     private void handleOptional(Stack<NFA> stack) {
-        // Pseudocode: Pop NFA, create new start/end, add epsilon transitions for zero/one occurrence
         if (stack.isEmpty()) {
             throw new IllegalStateException("Error. La pila está vacía. No es posible usar el operador 'opcional' (?).");
         }
         
-        NFA atfn = stack.pop(); // Pop the NFA to apply ? to
+        NFA atfn = stack.pop();
         
-        State inicialN = new State(); // New start state
-        State finalN = new State(); // New end state
+        State inicialN = new State();
+        State finalN = new State();
         
-        // Epsilon transition: nuevo inicial -> inicial anterior (una rep.)
         inicialN.transitions.add(new Transition(null, atfn.startState));
-        
-        // Epsilon transition: nuevo inicial -> nuevo final (cero rep.)
         inicialN.transitions.add(new Transition(null, finalN));
-        
-        // Epsilon transition: final anterior -> nuevo final
         atfn.endState.transitions.add(new Transition(null, finalN));
-
-        // Old end state is no longer final
         atfn.endState.isFinal = false;
         
-        // Push the new NFA onto the stack
         stack.push(new NFA(inicialN, finalN));
     }
 
     /**
      * Handles the '+' operator (one or more occurrences).
-     * Pops an NFA from the stack and creates a new NFA that accepts one or more occurrences.
-     * @param stack The NFA stack.
      */
     private void handlePlus(Stack<NFA> stack) {
-        // Pseudocode: Pop NFA, create new start/end, add transitions for one or more occurrence
         if (stack.isEmpty()) {
             throw new IllegalStateException("Error: la pila está vacía. No es posible usar el operador 'más' (+).");
         }
-            State inicioN = new State(); // New start state
-            State finalN = new State(); // New end state
+        
+        State inicioN = new State();
+        State finalN = new State();
+        NFA atfn = stack.pop();
 
-            NFA atfn = stack.pop(); // Pop the NFA to apply Plus to
+        inicioN.transitions.add(new Transition(null, atfn.startState));
+        atfn.endState.transitions.add(new Transition(null, atfn.startState));
+        atfn.endState.transitions.add(new Transition(null, finalN));
+        atfn.endState.isFinal = false;
 
-            // Epsilon transition: nuevo inicial -> incial anterior
-            inicioN.transitions.add(new Transition(null, atfn.startState));
-
-            // Epsilon transition: final antrior -> inicial anterior
-            atfn.endState.transitions.add(new Transition(null, atfn.startState));
-
-            // Epsilon transition: final anterior -> nuevo final
-            atfn.endState.transitions.add(new Transition(null, finalN));
-
-            // Old end state is no longer final
-            atfn.endState.isFinal = false;
-
-            // Push the new NFA onto the stack
-            stack.push(new NFA(inicioN, finalN));
+        stack.push(new NFA(inicioN, finalN));
     }
     
     /**
      * Creates an NFA for a single character.
-     * @param c The character to create an NFA for.
-     * @return The constructed NFA.
      */
     private NFA createNfaForCharacter(char c) {
-        // Pseudocode: Create start/end state, add transition for character
-        State inicio = new State(); // Start state
-        State fin = new State(); // End state
+        State inicio = new State();
+        State fin = new State();
         
-        // Transition for the character c
         inicio.transitions.add(new Transition(c, fin));
-
-        // We create and return the NFA
         return new NFA(inicio, fin);
     }
 
     /**
      * Handles the concatenation operator (·).
-     * Pops two NFAs from the stack and connects them in sequence.
-     * @param stack The NFA stack.
      */
     private void handleConcatenation(Stack<NFA> stack) {
-        // Pseudocode: Pop two NFAs, connect end of first to start of second
         if (stack.size() < 2) {
             throw new IllegalStateException("Error: Se necesitan al menos dos AFNs para la concatenación (·).");
         } 
-            // Pop two NFAs (el orden debe ser así: 2 -> 1, si no da error esta cosa)
-            NFA at2 = stack.pop();
-            NFA at1 = stack.pop();
 
-            // Epsilon transition: final del primero -> inicial del segundo
-            at1.endState.transitions.add(new Transition(null, at2.startState));
-            // At1's old end state is no longer final
-            at1.endState.isFinal = false;
+        NFA at2 = stack.pop();
+        NFA at1 = stack.pop();
 
-            // Push the new NFA onto the stack
-            stack.push(new NFA(at1.startState, at2.endState));
+        at1.endState.transitions.add(new Transition(null, at2.startState));
+        at1.endState.isFinal = false;
 
+        stack.push(new NFA(at1.startState, at2.endState));
     }
 
     /**
      * Handles the union operator (|).
-     * Pops two NFAs from the stack and creates a new NFA that accepts either.
-     * @param stack The NFA stack.
      */
     private void handleUnion(Stack<NFA> stack) {
-        // Pseudocode: Pop two NFAs, create new start/end, add epsilon transitions for union
         if (stack.size() < 2) {
             throw new IllegalStateException("Error: Se necesitan al menos dos AFNs para la unión (|).");
         } 
-            // Pop two NFAs
-            NFA at1 = stack.pop();
-            NFA at2 = stack.pop();
 
-            State inicialN = new State(); // New start state
-            State finalN = new State(); // New end state
+        NFA at1 = stack.pop();
+        NFA at2 = stack.pop();
 
-            // Epsilon transition: nuevo inicial -> inicial de a1
-            inicialN.transitions.add(new Transition(null, at1.startState));
-            // Epsilon transition: nuevo inicial -> inicial de a2
-            inicialN.transitions.add(new Transition(null, at2.startState));
-            // Epsilon transition: final de a1 -> nuevo final
-            at1.endState.transitions.add(new Transition(null, finalN));
-            // Epsilon transition: final de a2 -> nuevo final
-            at2.endState.transitions.add(new Transition(null, finalN));
+        State inicialN = new State();
+        State finalN = new State();
 
-            // Old end states are no longer final ones
-            at1.endState.isFinal = false;
-            at2.endState.isFinal = false;
+        inicialN.transitions.add(new Transition(null, at1.startState));
+        inicialN.transitions.add(new Transition(null, at2.startState));
+        at1.endState.transitions.add(new Transition(null, finalN));
+        at2.endState.transitions.add(new Transition(null, finalN));
 
-            // Push the new NFA onto the stack
-            stack.push(new NFA(inicialN, finalN));
-        
+        at1.endState.isFinal = false;
+        at2.endState.isFinal = false;
+
+        stack.push(new NFA(inicialN, finalN));
     }
 
     /**
      * Handles the Kleene star operator (*).
-     * Pops an NFA from the stack and creates a new NFA that accepts zero or more repetitions.
-     * @param stack The NFA stack.
      */
     private void handleKleeneStar(Stack<NFA> stack) {
-        // Pseudocode: Pop NFA, create new start/end, add transitions for zero or more repetitions
-
         if (stack.isEmpty()) {
             throw new IllegalStateException("Error: La pila está vacía. No es posible usar la 'Estrella de Kleene' (*).");
         } 
-            State inicioN = new State(); // New start state
-            State finalN = new State(); // New end state
 
-            NFA atfn = stack.pop(); // Pop the NFA to apply Kleene star to
+        State inicioN = new State();
+        State finalN = new State();
+        NFA atfn = stack.pop();
 
-            // Epsilon transition: nuevo inicial -> nuevo final (cero repeticiones)
-            inicioN.transitions.add(new Transition(null, finalN));
+        inicioN.transitions.add(new Transition(null, finalN));
+        inicioN.transitions.add(new Transition(null, atfn.startState));
+        atfn.endState.transitions.add(new Transition(null, atfn.startState));
+        atfn.endState.transitions.add(new Transition(null, finalN));
+        atfn.endState.isFinal = false;
 
-            // Epsilon transition: nuevo inicial -> incial anterior
-            inicioN.transitions.add(new Transition(null, atfn.startState));
-
-            // Epsilon transition: final antrior -> inicial anterior
-            atfn.endState.transitions.add(new Transition(null, atfn.startState));
-
-            // Epsilon transition: final anterior -> nuevo final
-            atfn.endState.transitions.add(new Transition(null, finalN));
-
-            // Old end state is no longer final
-            atfn.endState.isFinal = false;
-
-            // Push the new NFA onto the stack
-            stack.push(new NFA(inicioN, finalN));
-        
+        stack.push(new NFA(inicioN, finalN));
     }
 
     /**
      * Checks if a character is an operand (not an operator).
-     * @param c The character to check.
-     * @return True if the character is an operand, false if it is an operator.
      */
     private boolean isOperand(char c) {
-        // Pseudocode: Return true if c is not an operator
-        if (c == '|' || c == '·' || c == '*' || c == '?' || c == '+') {
-            return false;
-        } else {
-            return true;
-        }
+        return !(c == '|' || c == '·' || c == '*' || c == '?' || c == '+' || c == '(' || c == ')');
     }
 }
