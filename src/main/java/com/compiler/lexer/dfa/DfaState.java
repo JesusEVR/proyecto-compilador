@@ -5,13 +5,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.HashMap;
 import com.compiler.lexer.nfa.State;
+import com.compiler.lexer.tokenizer.TokenType;
 
 /**
  *  DfaState
  *  --------
  *  Represents a single state in a Deterministic Finite Automaton (DFA).
  *  Each DFA state corresponds to a set of states from the original NFA.
- *  Provides methods for managing transitions, checking finality, and equality based on NFA state sets.
+ *  Provides methods for managing transitions, checking finality, token type information, and equality based on NFA state sets.
  */
 public class DfaState {
     /**
@@ -34,6 +35,14 @@ public class DfaState {
      *  Map of input symbols to destination DFA states (transitions).
      */
     public final Map<Character, DfaState> transitions;
+    /**
+     *  The token type this state recognizes (null if not a final state or doesn't recognize a token).
+     */
+    private TokenType tokenType;
+    /**
+     *  Priority of the token type (lower values = higher priority). Used for conflict resolution.
+     */
+    private int tokenPriority;
 
     /**
      *  Constructs a new DFA state.
@@ -44,6 +53,8 @@ public class DfaState {
         this.id = nextId++;
         this.isFinal = false;
         this.transitions = new HashMap<>();
+        this.tokenType = null;
+        this.tokenPriority = Integer.MAX_VALUE;
     }
 
     /**
@@ -89,6 +100,35 @@ public class DfaState {
     }
 
     /**
+     *  Sets the token type this state recognizes.
+     *  @param tokenType The token type.
+     *  @param priority The priority of this token type (lower values = higher priority).
+     */
+    public void setTokenType(TokenType tokenType, int priority) {
+        // Only set if this has higher priority (lower priority value) or if no token type is set
+        if (this.tokenType == null || priority < this.tokenPriority) {
+            this.tokenType = tokenType;
+            this.tokenPriority = priority;
+        }
+    }
+
+    /**
+     *  Gets the token type this state recognizes.
+     *  @return The token type, or null if this state doesn't recognize a token.
+     */
+    public TokenType getTokenType() {
+        return tokenType;
+    }
+
+    /**
+     *  Gets the priority of the token type.
+     *  @return The token priority.
+     */
+    public int getTokenPriority() {
+        return tokenPriority;
+    }
+
+    /**
      *  Returns the set of NFA states this DFA state represents.
      *  @return The set of NFA states.
      */
@@ -123,8 +163,8 @@ public class DfaState {
     }
 
     /**
-     *  Returns a string representation of the DFA state, including its id and
-     *  finality.
+     *  Returns a string representation of the DFA state, including its id,
+     *  finality, and token information.
      *  
      *  @return String representation of the state.
      */
@@ -132,6 +172,10 @@ public class DfaState {
     public String toString() {
 
         String estado = "State " + id + (isFinal ? " (final state)" : "");
+        
+        if (tokenType != null) {
+            estado += " - Token: " + tokenType + " (priority: " + tokenPriority + ")";
+        }
 
         String estadosNFA = "  NFA States: " + nfaStates;
 
