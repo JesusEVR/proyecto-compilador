@@ -1,15 +1,14 @@
-package com.compiler;
+package com.compiler.lexer;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import java.util.*;
-import com.compiler.lexer.NfaSimulator;
-import com.compiler.lexer.nfa.NFA;
-import com.compiler.lexer.DfaSimulator;
 import com.compiler.lexer.dfa.DFA;
-import com.compiler.lexer.NfaToDfaConverter;
+import com.compiler.lexer.nfa.NFA;
 import com.compiler.lexer.regex.RegexParser;
 
 public class RegexTest {
@@ -31,8 +30,8 @@ public class RegexTest {
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
         // DFA
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -55,8 +54,8 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -80,9 +79,9 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
-        alphabet.add('b');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
+    alphabet.add('b');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -106,10 +105,10 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
-        alphabet.add('b');
-        alphabet.add('c');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
+    alphabet.add('b');
+    alphabet.add('c');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -135,10 +134,10 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
-        alphabet.add('b');
-        alphabet.add('c');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
+    alphabet.add('b');
+    alphabet.add('c');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -168,9 +167,9 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
-        alphabet.add('b');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
+    alphabet.add('b');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -194,11 +193,11 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
-        alphabet.add('b');
-        alphabet.add('c');
-        alphabet.add('d');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
+    alphabet.add('b');
+    alphabet.add('c');
+    alphabet.add('d');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -225,11 +224,11 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
-        alphabet.add('b');
-        alphabet.add('c');
-        alphabet.add('d');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
+    alphabet.add('b');
+    alphabet.add('c');
+    alphabet.add('d');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -252,8 +251,8 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -278,10 +277,10 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
-        alphabet.add('b');
-        alphabet.add('c');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
+    alphabet.add('b');
+    alphabet.add('c');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
@@ -310,9 +309,9 @@ public class RegexTest {
         nfa.endState.isFinal = true;
         NfaSimulator nfaSimulator = new NfaSimulator();
         boolean actualNfa = nfaSimulator.simulate(nfa, input);
-        Set<Character> alphabet = new HashSet<>();
-        alphabet.add('a');
-        alphabet.add('b');
+    Set<Character> alphabet = new HashSet<>();
+    alphabet.add('a');
+    alphabet.add('b');
         DFA dfa = com.compiler.lexer.NfaToDfaConverter.convertNfaToDfa(nfa, alphabet);
         com.compiler.lexer.DfaSimulator dfaSimulator = new com.compiler.lexer.DfaSimulator();
         boolean actualDfa = dfaSimulator.simulate(dfa, input);
