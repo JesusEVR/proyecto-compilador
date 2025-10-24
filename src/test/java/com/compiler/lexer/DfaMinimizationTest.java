@@ -1,4 +1,4 @@
-package com.compiler;
+package com.compiler.lexer;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -7,9 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
-import com.compiler.lexer.DfaMinimizer;
-import com.compiler.lexer.DfaSimulator;
-import com.compiler.lexer.NfaToDfaConverter;
 import com.compiler.lexer.dfa.DFA;
 import com.compiler.lexer.nfa.NFA;
 import com.compiler.lexer.regex.RegexParser;

@@ -1,4 +1,4 @@
-package com.compiler;
+package com.compiler.parser;
 
 import java.util.Map;
 import java.util.Set;

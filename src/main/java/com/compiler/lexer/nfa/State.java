@@ -1,13 +1,12 @@
 package com.compiler.lexer.nfa;
 
-import java.util.List;
 import java.util.ArrayList;
-import com.compiler.lexer.tokenizer.TokenType;
+import java.util.List;
 
 /**
  * Represents a state in a Non-deterministic Finite Automaton (NFA).
  * Each state has a unique identifier, a list of transitions to other states,
- * a flag indicating whether it is a final (accepting) state, and optional token information.
+ * and a flag indicating whether it is a final (accepting) state.
  *
  * <p>
  * Fields:
@@ -15,8 +14,6 @@ import com.compiler.lexer.tokenizer.TokenType;
  *   <li>{@code id} - Unique identifier for the state.</li>
  *   <li>{@code transitions} - List of transitions from this state to others.</li>
  *   <li>{@code isFinal} - Indicates if this state is an accepting state.</li>
- *   <li>{@code tokenType} - The type of token this state recognizes (if final).</li>
- *   <li>{@code tokenPriority} - Priority for conflict resolution.</li>
  * </ul>
  *
  *
@@ -42,14 +39,14 @@ public class State {
     public boolean isFinal;
 
     /**
-     * The token type this state recognizes (null if not a final state or doesn't recognize a token).
+     * The token type name associated with this final state (null if not final).
      */
-    private TokenType tokenType;
-    
+    public String tokenTypeName;
     /**
-     * Priority of the token type (lower values = higher priority). Used for conflict resolution.
+     * Priority of this final state when multiple final NFA states are present in a DFA state.
+     * Lower values mean higher priority. Defaults to Integer.MAX_VALUE (lowest priority).
      */
-    private int tokenPriority;
+    public int priority = Integer.MAX_VALUE;
 
     /**
      * Constructs a new state with a unique identifier and no transitions.
@@ -59,8 +56,7 @@ public class State {
         this.id = nextId++;
         this.transitions = new ArrayList<>();
         this.isFinal = false;
-        this.tokenType = null;
-        this.tokenPriority = Integer.MAX_VALUE;
+        this.tokenTypeName = null;
     }
 
     /**
@@ -68,40 +64,7 @@ public class State {
      * @return true if this state is final, false otherwise
      */
     public boolean isFinal() {
-        if(this.isFinal) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Sets the token type this state recognizes.
-     * @param tokenType The token type.
-     * @param priority The priority of this token type (lower values = higher priority).
-     */
-    public void setTokenType(TokenType tokenType, int priority) {
-        // Only set if this has higher priority (lower priority value) or if no token type is set
-        if (this.tokenType == null || priority < this.tokenPriority) {
-            this.tokenType = tokenType;
-            this.tokenPriority = priority;
-        }
-    }
-
-    /**
-     * Gets the token type this state recognizes.
-     * @return The token type, or null if this state doesn't recognize a token.
-     */
-    public TokenType getTokenType() {
-        return tokenType;
-    }
-
-    /**
-     * Gets the priority of the token type.
-     * @return The token priority.
-     */
-    public int getTokenPriority() {
-        return tokenPriority;
+        return isFinal;
     }
 
     /**
@@ -109,13 +72,33 @@ public class State {
      * @return a list of states reachable by epsilon transitions
      */
     public List<State> getEpsilonTransitions() {
-        List<State> estadosEpsilon = new ArrayList<>();
-        for(Transition t : transitions) {
-            if(t.symbol == null) {
-                estadosEpsilon.add(t.toState);
+        List<State> result = new ArrayList<>();
+        for (Transition t : transitions) {
+            if (t.symbol == null) {
+                result.add(t.toState);
             }
         }
-        return estadosEpsilon;
+        return result;
+    }
+
+    /**
+     * Sets this state as final and associates a token type name.
+     * @param tokenTypeName The token type name to associate with this state.
+     */
+    public void setFinal(String tokenTypeName) {
+        this.isFinal = true;
+        this.tokenTypeName = tokenTypeName;
+    }
+
+    /**
+     * Sets this state as final and assigns a priority for tie-breaking.
+     * @param tokenTypeName The token type name to associate with this state.
+     * @param priority Priority value (lower wins)
+     */
+    public void setFinal(String tokenTypeName, int priority) {
+        this.isFinal = true;
+        this.tokenTypeName = tokenTypeName;
+        this.priority = priority;
     }
 
     /**
@@ -124,12 +107,12 @@ public class State {
      * @return a list of states reachable by the given symbol
      */
     public List<State> getTransitions(char symbol) {
-        List<State> estadosSimb = new ArrayList<>();
-        for(Transition t : transitions) {
-            if( t.symbol != null && t.symbol == symbol) {
-                estadosSimb.add(t.toState);
+        List<State> result = new ArrayList<>();
+        for (Transition t : transitions) {
+            if (t.symbol != null && t.symbol == symbol) {
+                result.add(t.toState);
             }
         }
-        return estadosSimb;
+        return result;
     }
 }
