@@ -9,7 +9,6 @@ En la carpeta ***compilador-java*** se encuentra un compilador desarrollado en J
 ## Autores 
 
 - @OscarTapiaS
-- @JesusEVR
 - @JoshuaJc2
 - @Anthonyafk
 - @JesusEVR
